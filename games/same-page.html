@@ -122,7 +122,11 @@ html[data-us-party=quiz] main[data-page=game] .layout>section{border:0;padding:7
 .pairReveal{animation:dealIn .3s ease-out}.pairReveal>small{color:#e2c8ef;font-weight:650}.pairReveal h2{margin:5px 0;color:#fff3ce}.pairReveal p{color:#ebdded}
 .answerStubs{display:grid;grid-template-columns:1fr 1fr;gap:6px}.answerStubs div{background:#f4e1bf;color:#382341;padding:13px 9px;border-radius:10px}.answerStubs div+div{background:#e2d1f4}.answerStubs small,.answerStubs strong{display:block}.answerStubs strong{margin-top:6px;line-height:1.25}
 .partyRound .pass{padding:24px 16px;border-radius:17px;background:#31263f;color:#fff7e6}.partyRound .pass p{color:#e9daef}
-</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script></head><body><main></main><dialog></dialog><script>// Original low-resolution artwork, rendered on a fixed pixel grid.
+</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script><style>
+.partyRound .passTable{position:relative;overflow:hidden;padding:24px 18px 18px;border:1px solid #705e8a;background:radial-gradient(ellipse at 50% -55%,#ab7bca,transparent 85%),#31243e;color:#fff4e3;text-align:center}
+.passTable h2{font:600 clamp(25px,7vw,37px)/1.08 Georgia,serif;margin:14px 0 6px;color:#fff4e3}.passTable p{color:#e5d7ed}
+.passPieces{display:flex;align-items:center;justify-content:center;gap:18px}.passPieces i{font:600 32px Georgia,serif;border:3px double #a897b4;border-radius:50%;width:56px;height:56px;display:grid;place-items:center;color:#b6a9bd;background:#382e42}.passPieces em{font:400 22px system-ui;color:#cfbdd8}.passTable[data-player="0"] .passPieces{flex-direction:row-reverse}.passTable[data-player="0"] .passPieces em{transform:rotate(180deg)}.passTable[data-player="0"] i:first-child,.passTable[data-player="1"] i:last-child{background:#f3db9b;border-color:#947348;color:#433121;box-shadow:0 3px #725835}
+</style></head><body><main></main><dialog></dialog><script>// Original low-resolution artwork, rendered on a fixed pixel grid.
 const artCache = new Map();
 function artwork(kind) {
   if (artCache.has(kind)) return artCache.get(kind);
@@ -222,7 +226,7 @@ root.innerHTML=content;if(page==='game'){if(id==='mine')mineDraw();if(id==='pool
 function show(p){close();page=p==='lobby'?'detail':p;paint();window.scrollTo(0,0)}
 function start(){if(id==='quiz')partyQuizLoad();token++;physics=null;round={turn:0,n:0,maxRounds:usPartyLength,predictions:[],predictionTotals:[0,0],predictionHits:[0,0],boostRound:[null,null],readScore:[0,0],phase:'choose',score:0,theirs:0,step:0,log:'',at:Date.now(),dots:[],brush:'#3e3848',hook:0,taken:[],answers:[],history:[],facts:[],cash:[100,100],own:{},cityPos:[0,0],ice:0,fire:0,poolAngle:-16,poolPower:68};show('game')}
 function finish(title,info,rows=[]){result={title,info,rows};show('result')}
-function hand(to,action){return `<div class="pass"><span class="player">${who(to)}</span><h2>Pass the phone to ${who(to)}</h2><p>The previous player’s answers are hidden.</p>${btn('Ready','pass','primary full',action)}</div>`}
+function hand(to,action){return `<div class="pass passTable" data-player="${to}"><div class="passPieces" aria-hidden="true"><i>A</i><em>→</em><i>B</i></div><h2>Pass the phone to ${who(to)}</h2><p>The previous player’s answers are hidden.</p>${btn('Ready','pass','primary full',action)}</div>`}
 const label=(a,b)=>`<div class="badgeLine"><b>${a}</b><span>${b}</span></div>`;
 function board(){let a=round,tag='',part='';
 if(id==='quiz'){let q=qs[a.n];tag=label(partyQuizNames[partyQuizSelection],`Question ${a.n+1} of ${a.maxRounds} · ${a.score} matches`);
