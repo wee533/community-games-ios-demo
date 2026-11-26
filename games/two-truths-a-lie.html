@@ -119,7 +119,10 @@ html[data-us-party=truth] main[data-page=game] .layout>section{padding:14px;bord
 .partyRound .party-prompt{border:1px dashed #b57665;background:#fae8d5;border-radius:12px}.partyRound .stack .choice{position:relative;background:#fff6e5;color:#482e34;border:1px solid #ceae96;border-left:5px solid #c97659;box-shadow:0 2px 0 #dfc7b8;min-height:58px}.partyRound .turnChip{background:#652c35}
 .statementSlip{display:grid;grid-template-columns:26px 1fr;align-items:center;gap:4px 8px;border:1px solid #afc2a5;border-radius:11px;background:#e7efe1;padding:12px;animation:dealIn .25s ease-out}
 .statementSlip i{grid-row:span 2;color:#647753;font:italic 23px Georgia,serif}.statementSlip b{overflow-wrap:anywhere;color:#243b30}.statementSlip small{color:#45604e;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.statementSlip[data-lie=true]{background:#fae2d9;border-color:#c87061}.statementSlip[data-lie=true] small{color:#7d3027}
-</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script></head><body><main></main><dialog></dialog><script>// Original low-resolution artwork, rendered on a fixed pixel grid.
+</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script><style>
+.partyRound .passTable{padding:24px 17px 16px;text-align:center;border-radius:13px;background:#453331;color:#fbeed8;box-shadow:inset 0 0 0 3px #453331,inset 0 0 0 4px #a98f70}
+.passTable h2{color:#fff0d4}.passTable p{color:#e8d7c6}.passPieces{display:flex;align-items:center;gap:16px;justify-content:center}.passPieces i{display:grid;place-items:center;width:46px;height:57px;border:3px double #b8a082;border-radius:5px;background:#5b4844;color:#d4c2a9;transform:rotate(-7deg);font:600 28px Georgia,serif}.passPieces i:last-child{transform:rotate(7deg)}.passPieces em{font:500 23px system-ui;color:#e1c397}.passTable[data-player="0"] .passPieces{flex-direction:row-reverse}.passTable[data-player="0"] .passPieces em{transform:rotate(180deg)}.passTable[data-player="0"] i:first-child,.passTable[data-player="1"] i:last-child{background:#f4e6ca;color:#723b38}
+</style></head><body><main></main><dialog></dialog><script>// Original low-resolution artwork, rendered on a fixed pixel grid.
 const artCache = new Map();
 function artwork(kind) {
   if (artCache.has(kind)) return artCache.get(kind);
@@ -219,7 +222,7 @@ root.innerHTML=content;if(page==='game'){if(id==='mine')mineDraw();if(id==='pool
 function show(p){close();page=p==='lobby'?'detail':p;paint();window.scrollTo(0,0)}
 function start(){if(id==='quiz')shuffleQuestions();token++;physics=null;round={turn:0,n:0,maxRounds:usPartyLength,phase:'choose',score:0,theirs:0,step:0,log:'',at:Date.now(),dots:[],brush:'#3e3848',hook:0,taken:[],answers:[],history:[],facts:[],cash:[100,100],own:{},cityPos:[0,0],ice:0,fire:0,poolAngle:-16,poolPower:68};if(id==='truth'){round.topics=partyTruthPicks();round.swappedTopics=new Set();round.questions=[];round.risk=false;round.truthPoints=[0,0]}show('game')}
 function finish(title,info,rows=[]){result={title,info,rows};show('result')}
-function hand(to,action){return `<div class="pass"><span class="player">${who(to)}</span><h2>Pass the phone to ${who(to)}</h2><p>The previous player’s answers are hidden.</p>${btn('Ready','pass','primary full',action)}</div>`}
+function hand(to,action){return `<div class="pass passTable" data-player="${to}"><div class="passPieces" aria-hidden="true"><i>A</i><em>→</em><i>B</i></div><h2>Pass the phone to ${who(to)}</h2><p>The previous player’s answers are hidden.</p>${btn('Ready','pass','primary full',action)}</div>`}
 const label=(a,b)=>`<div class="badgeLine"><b>${a}</b><span>${b}</span></div>`;
 function board(){let a=round,tag='',part='';
 if(id==='quiz'){let q=qs[a.n];tag=label('默契Social',`第 ${a.n+1} / 3 题 · 已相同 ${a.score} 题`);
