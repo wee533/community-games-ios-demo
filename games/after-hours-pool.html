@@ -290,7 +290,14 @@ button:focus-visible,[role=button]:focus-visible{outline:3px solid #8380ed;outli
 .callRow{display:flex;gap:7px;align-items:center;margin:1px 0 8px}.callRow[hidden]{display:none}.callRow button,.pocketMap button{min-height:44px;background:#233b36;border:1px solid #6e9075;color:#f7efd0;border-radius:10px;font:700 12px system-ui}.callRow small{font-size:11px;color:#c4d2c3}.callRow button:disabled{opacity:.52}
 #callSheet p{margin:6px 0 14px;color:#d9e6db;line-height:1.4}.pocketMap{display:grid;grid-template-columns:repeat(3,1fr);gap:17px 6px;background:linear-gradient(135deg,#1d5b50,#133e3b);border:5px solid #725739;padding:7px;border-radius:14px}.pocketMap button[aria-pressed=true]{background:#f1d891;color:#332c1d}.pocketMap button{min-width:0;padding:4px}.pocketMap+form{margin-top:12px;display:flex;justify-content:space-between}
 @media(orientation:landscape) and (max-height:500px){.callRow{margin:0;gap:4px}.callRow button{min-height:35px}.callRow small{font-size:10px}}
-</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script></head>
+</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script><style>
+#cuePull{display:none}
+.match[data-tall=true] .play{position:relative}
+.match[data-tall=true] .scene{max-width:calc(100% - 60px);max-height:min(calc((100vw - 110px)*1.77866),100%);transform:translateX(15px)}
+.match[data-tall=true] #cuePull{position:absolute;z-index:2;left:2px;top:19%;height:58%;width:44px;display:flex;align-items:center;justify-content:end;flex-direction:column;overflow:hidden;touch-action:none;user-select:none;-webkit-touch-callout:none;border-radius:11px;border:1px solid #55756b;color:#deecdc;background:repeating-linear-gradient(0deg,transparent 0 12px,#a4c0aa38 12px 13px) 6px center/6px 84% no-repeat,linear-gradient(90deg,#172726,#273b34,#152623)}
+#cuePull i{position:absolute;width:7px;top:7%;height:60%;left:50%;transform:translate(-50%,calc(var(--draw,0)*40%));border-radius:4px;background:linear-gradient(#5d9ca4 0 3%,#ffffdb 3% 8%,#eecba0 8%,#bd8c63 66%,#43322d 68% 77%,#aa7650 78%);box-shadow:1px 2px 3px #0009}
+#cuePull output{position:relative;z-index:1;margin:0 0 6px;font:700 11px system-ui;background:#18332b;border-radius:4px;padding:2px 4px}#cuePull.pulling{outline:1px solid #d9c08d}#cuePull:disabled{opacity:.45}
+</style></head>
 <body>
 <main class="match" data-side="0">
  <header class="masthead">
@@ -328,7 +335,7 @@ button:focus-visible,[role=button]:focus-visible{outline:3px solid #8380ed;outli
    <strong class="turn"><span></span><output id="turn">Player A to shoot</output></strong>
    <p class="objectCount">Balls left <strong id="remaining">9</strong></p>
   </header>
-  <div class="scene">
+  <button type="button" id="cuePull" aria-label="Pull down and release to shoot. Slide to the side to cancel."><i aria-hidden="true"></i><output>Pull</output></button><div class="scene">
    <canvas id="poolBoard" width="900" height="506" tabindex="0" aria-label="Pool table. Touch to aim.">Canvas support is required.</canvas>
    <section class="result" hidden>
     <div class="resultCard">
@@ -360,7 +367,7 @@ button:focus-visible,[role=button]:focus-visible{outline:3px solid #8380ed;outli
  <form method="dialog">
   <h2 id="rulesTitle">Match rules</h2>
   <ul id="duelRules">
-   <li>Tap or drag to aim. The blue line shows the cue ball’s bank path.</li>
+   <li>In portrait versus, pull the cue on the left rail downward and release to shoot. Slide sideways to cancel. The power slider and Shoot button also work.</li><li>Tap or drag to aim. The blue line shows the cue ball’s bank path.</li>
    <li>Each player gets six shots. Score 1 per object ball, or 2 for sinking it in the gold pocket.</li>
    <li>Once per player, Call a pocket assigns the 3-point pocket for one shot. A scratch cancels all points for that shot. The next player places the cue ball in the highlighted area.</li>
    <li>The match ends after 12 shots or when the table clears. High score wins.</li>
@@ -968,10 +975,10 @@ function syncTableLayout(){
  match.dataset.tall=String(tall);
  pocketButtons.forEach((button,i)=>button.textContent=(tall?portraitNames:landscapeNames)[i]);
 }
-tallScreen.addEventListener('change',()=>{syncTableLayout();refreshCall();scheduleFrame()});
+tallScreen.addEventListener('change',()=>{cancelPull();syncTableLayout();refreshCall();scheduleFrame()});
 function syncControls(){
  syncTableLayout();
- refreshCall();
+ paintPull();refreshCall();
  const ready=phase==='aim',placing=phase==='place';
  const verb={aim:'Aiming',place:'Place the cue ball',stroke:'Shooting',rolling:'Balls rolling',finished:'Match over'};
  document.querySelector('#turn').textContent=currentChallenge()||phase==='rolling'||phase==='finished'?verb[phase]:playerNames[turn]+' · '+verb[phase];
@@ -1237,11 +1244,49 @@ rules.addEventListener('close',()=>{lastTime=0;scheduleFrame()});
 window.addEventListener('message',event=>{
  if(event.source!==parent||!['pool-visibility','arcade-visibility'].includes(event.data?.type))return;
  active=event.data.active;
- if(!active)pointerId=null;
+ if(!active){pointerId=null;cancelPull()}
  lastTime=0;
  if(active)scheduleFrame();
 });
-document.addEventListener('visibilitychange',()=>{lastTime=0;scheduleFrame()});
+const cuePull=document.querySelector('#cuePull');
+const cueReadout=cuePull.querySelector('output');
+let pull=null;
+function cancelPull(){
+ if(!pull)return;
+ const saved=pull.power;pull=null;cuePull.classList.remove('pulling');setPower(saved);paintPull();
+}
+function paintPull(){
+ cuePull.style.setProperty('--draw',pull?String(power):'0');
+ cueReadout.textContent=pull?Math.round(power*100)+'%':'Pull';
+ cuePull.disabled=phase!=='aim';
+}
+cuePull.addEventListener('pointerdown',event=>{
+ if(event.button!==0||pull||phase!=='aim'||rules.open||callSheet.open||!active)return;
+ event.preventDefault();cuePull.setPointerCapture(event.pointerId);
+ pull={id:event.pointerId,y:event.clientY,power:Math.round(power*100),distance:0};cuePull.classList.add('pulling');setPower(10);paintPull();
+});
+function adjustPull(event){
+ if(!pull||pull.id!==event.pointerId)return;
+ const rect=cuePull.getBoundingClientRect();
+ if(event.clientX<rect.left-24||event.clientX>rect.right+24){cancelPull();return}
+ pull.distance=Math.max(0,event.clientY-pull.y);
+ setPower(Math.round(10+90*Math.min(1,pull.distance/Math.max(60,rect.height*.65))));paintPull();scheduleFrame();
+}
+cuePull.addEventListener('pointermove',adjustPull);
+cuePull.addEventListener('pointerup',event=>{
+ adjustPull(event);if(!pull||event.pointerId!==pull.id)return;
+ if(pull.distance<9){cancelPull();return}
+ pull=null;cuePull.classList.remove('pulling');shoot();paintPull();
+});
+for(const type of ['pointercancel','lostpointercapture'])cuePull.addEventListener(type,cancelPull);
+cuePull.addEventListener('click',event=>{if(event.detail===0)shoot()});
+window.addEventListener('blur',cancelPull);
+window.addEventListener('message',event=>{if(event.source===parent&&event.data?.active===false)cancelPull()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelPull()});
+tallScreen.addEventListener('change',cancelPull);
+cuePull.addEventListener('click',event=>{if(event.detail===0&&!pull)shoot()});
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelPull();lastTime=0;scheduleFrame()});
 resetMatch();
 
 </script>
