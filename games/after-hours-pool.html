@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a151b">
+<meta name="demo-original-title" content="台球">
+<title>After Hours Pool</title>
+<style>
+:root{
+ color-scheme:dark;
+ --bg:#0a151b;
+ --panel:#111f27;
+ --line:#263a43;
+ --ink:#f0f6f0;
+ --muted:#9fb0b5;
+ --a:#9df1da;
+ --b:#ffb59f;
+ font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{min-height:100%;-webkit-text-size-adjust:100%}
+body{
+ margin:0;
+ min-height:100dvh;
+ color:var(--ink);
+ background:radial-gradient(ellipse at 45% -16%,#1b3b3c 0%,transparent 63%),var(--bg);
+}
+button,input{font:inherit}
+button{
+ color:inherit;
+ font-weight:750;
+ border:0;
+ cursor:pointer;
+ -webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;
+}
+button:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--accent,var(--a));outline-offset:3px}
+p,h1,h2{margin:0}
+[hidden]{display:none!important}
+.match{
+ --accent:var(--a);
+ --accent-dim:#3d746c;
+ max-width:530px;
+ margin:auto;
+ padding:max(14px,env(safe-area-inset-top)) max(13px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(13px,env(safe-area-inset-left));
+ display:grid;
+ grid-template-areas:"heading" "scores" "play" "control";
+ gap:13px;
+}
+.match[data-side="1"]{--accent:var(--b);--accent-dim:#8e5f57}
+.masthead{grid-area:heading;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.playActions{display:flex;gap:5px}
+.heading{display:flex;align-items:center;gap:11px;min-width:0}
+.clubMark{
+ flex:none;width:42px;height:42px;border:1px solid #7dd8b85e;border-radius:14px;
+ display:grid;place-items:center;
+ background:linear-gradient(150deg,#246557,#122d2b);
+ box-shadow:inset 0 1px #bbffde3b,0 4px 12px #07121366;
+}
+.clubMark i{
+ width:22px;height:22px;position:relative;border-radius:50%;
+ background:radial-gradient(circle at 36% 26%,#4b6965,#12201f 77%);
+ outline:1px solid #b1f5dc55;box-shadow:0 3px 7px #0008;
+}
+.clubMark i::after{
+ content:"8";position:absolute;inset:5px;border-radius:50%;display:grid;place-items:center;
+ background:#e9f2db;color:#162722;font:800 9px/1 -apple-system,sans-serif;
+}
+.eyebrow{font-size:11px;color:var(--a);font-weight:750;letter-spacing:.06em}
+h1{margin-top:3px;font-size:clamp(25px,7vw,35px);font-weight:860;letter-spacing:-.045em;line-height:1.13}
+.subButton{
+ min-width:44px;min-height:44px;
+ padding:0 11px;border:1px solid #35515a;border-radius:11px;
+ background:#15282e;color:#d8e6e5;font-size:12px;
+}
+.modeButton{color:var(--a);border-color:#4d7c72}
+.modeButton:disabled{opacity:.55;cursor:default}
+.scoreboard{grid-area:scores;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:7px}
+.playerCard{
+ --team:var(--a);
+ min-width:0;min-height:62px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;
+ padding:8px;border:1px solid var(--line);border-radius:13px;
+ background:linear-gradient(140deg,#19262d,#101d25);
+}
+.playerCard[data-player="1"]{--team:var(--b)}
+.playerCard.current{border-color:var(--accent-dim);background:linear-gradient(135deg,color-mix(in srgb,var(--team) 15%,#122026),#13222a);box-shadow:inset 0 1px #ffffff09}
+.avatar{
+ width:29px;height:29px;display:grid;place-items:center;flex:none;
+ border-radius:9px;border:1px solid color-mix(in srgb,var(--team) 45%,transparent);
+ color:var(--team);background:color-mix(in srgb,var(--team) 13%,#102026);font-size:13px;font-weight:830;
+}
+.playerName{font-weight:750;font-size:12px;white-space:nowrap}
+.shotBalance{margin-top:4px;color:var(--muted);font-size:10px;white-space:nowrap}
+.points,.round strong,#powerValue{font-variant-numeric:tabular-nums}
+.points{font-size:25px;line-height:1;color:var(--team);letter-spacing:-.045em}
+.round{display:grid;align-content:center;justify-items:center;gap:3px;padding:0 3px;white-space:nowrap;color:var(--muted)}
+.round>span{font-size:10px;letter-spacing:.12em}
+.round strong{color:#eef4ef;font-size:15px;line-height:1}
+.round small{color:var(--muted);font-size:10px;font-weight:650}
+.challengeCard{
+ grid-area:scores;display:flex;justify-content:space-between;align-items:center;gap:8px;
+ min-height:62px;padding:10px 12px;border:1px solid #3b6b63;border-radius:13px;
+ background:linear-gradient(135deg,#183a35,#14252e);
+}
+.challengeCard h2{margin-top:3px;font-size:19px;line-height:1.12}
+#challengeAttempts{color:var(--a);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.play{grid-area:play;min-width:0;align-self:start;border:1px solid #28424c;padding:9px;border-radius:17px;background:linear-gradient(180deg,#13272e,#0c1921);box-shadow:0 7px 22px #0003}
+.tableHeader,.tableFooter{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tableHeader{padding:0 2px 9px}
+.turn{display:flex;align-items:center;gap:7px;color:var(--accent);font-size:13px;white-space:nowrap}
+.turn span{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 11px color-mix(in srgb,var(--accent) 66%,transparent)}
+.objectCount{color:var(--muted);font-size:11px;white-space:nowrap}
+.objectCount strong{margin-left:3px;font-size:13px;color:var(--ink)}
+.scene{position:relative;border-radius:10px;overflow:hidden;background:#08141b}
+canvas{display:block;width:100%;height:auto;aspect-ratio:900/506;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:crosshair}
+.tableFooter{padding:9px 2px 1px}
+.ballTray{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.trayBall{
+ --ball:#ddd;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;
+ border:1px solid #ffffff38;box-shadow:inset 0 1px #fff6,0 1px 2px #0008;
+ color:#152127;background:radial-gradient(circle at 35% 25%,#ffffffbd 0%,var(--ball) 65%);
+ font-size:9px;font-weight:850;font-variant-numeric:tabular-nums;
+}
+.trayBall[data-pocketed="true"]{opacity:.27;box-shadow:none}
+#aimHint{color:var(--muted);font-size:10px;white-space:nowrap}
+.console{
+ grid-area:control;min-width:0;align-self:start;border:1px solid var(--line);border-radius:14px;
+ background:#111f27;padding:10px 11px 11px;
+}
+.message{min-height:16px;margin-bottom:9px;font-size:12px;line-height:1.35;color:#c4d6d8}
+.message[data-kind="foul"]{color:#ffd0bc}
+.message[data-kind="score"]{color:var(--a)}
+.controlRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(104px,33%);gap:13px;align-items:center}
+.powerControl{min-width:0}
+.powerControl label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#dce9e8;font-weight:700}
+#powerValue{color:var(--accent);font-size:15px;font-weight:850}
+#power{
+ --fill:73.33%;display:block;appearance:none;-webkit-appearance:none;width:100%;height:34px;margin:0;
+ border:0;border-radius:9px;background:transparent;accent-color:var(--accent);cursor:pointer;touch-action:pan-y;
+}
+#power::-webkit-slider-runnable-track{height:9px;border-radius:8px;background:linear-gradient(to right,var(--accent-dim),var(--accent) var(--fill),#30434b var(--fill));box-shadow:inset 0 1px #ffffff24}
+#power::-moz-range-track{height:9px;border-radius:8px;background:linear-gradient(to right,var(--accent-dim),var(--accent) var(--fill),#30434b var(--fill))}
+#power::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;margin-top:-5.5px;border-radius:50%;border:2px solid #f2fffa;background:var(--accent);box-shadow:0 2px 7px #0008}
+#power::-moz-range-thumb{width:17px;height:17px;border-radius:50%;border:2px solid #f2fffa;background:var(--accent);box-shadow:0 2px 7px #0008}
+#power:disabled{opacity:.54;cursor:default}
+.shoot{
+ min-height:48px;border-radius:11px;padding:0 13px;color:#0e2925;
+ background:linear-gradient(145deg,#edffee,var(--accent,var(--a)) 63%);box-shadow:0 3px 12px #0005,inset 0 1px #fffea0a1;
+ font-size:16px;white-space:nowrap;
+}
+.shoot span{display:inline-block;margin-left:4px;color:#235b50}
+.shoot:active:not(:disabled){transform:translateY(1px)}
+.shoot:disabled{background:#273b42;color:#94a9ab;box-shadow:none;cursor:default}
+.result{
+ position:absolute;inset:0;display:grid;place-items:center;
+ padding:7px;background:#08151cba;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.resultCard{width:min(100%,215px);text-align:center;border:1px solid #427166;border-radius:15px;background:#152931;padding:9px 14px}
+.resultCard p{color:#b7cfca;font-size:11px}
+.resultCard h2{margin:4px 0;color:var(--accent);font-size:23px;line-height:1.13}
+.resultCard .shoot{margin-top:7px;width:100%;min-height:44px;font-size:14px}
+dialog{
+ color:var(--ink);width:min(calc(100vw - 30px),400px);max-height:calc(100dvh - 26px);padding:18px;
+ border:1px solid #427068;border-radius:17px;background:#172a32;box-shadow:0 12px 40px #0008;
+}
+dialog::backdrop{background:#071317c0}
+dialog h2{font-size:24px}
+dialog ul{margin:11px 0 16px;padding-left:20px;font-size:14px;line-height:1.55;color:#d5e6e2}
+dialog li+li{margin-top:5px}
+dialog .shoot{width:100%}
+@media (max-width:360px){
+ .match{gap:10px;padding-inline:10px}
+ .playerCard{gap:5px;padding:6px;min-height:55px}
+ .avatar{width:25px;height:25px}
+ .points{font-size:22px}
+ .scoreboard{gap:5px}
+ .play{padding:7px}
+ .trayBall{width:14px;height:14px;font-size:8px}
+ .controlRow{gap:9px}
+}
+@media (orientation:landscape) and (min-width:490px) and (max-height:610px){
+ .match{
+  max-width:960px;
+  grid-template-columns:minmax(0,1fr) minmax(193px,29%);
+  grid-template-areas:"play heading" "play scores" "play control";
+  grid-template-rows:min-content min-content minmax(0,1fr);
+  align-content:center;gap:8px 12px;
+  min-height:100dvh;
+  padding-top:max(7px,env(safe-area-inset-top));padding-bottom:max(8px,env(safe-area-inset-bottom));
+ }
+ .heading{gap:8px}
+ .clubMark{display:none}
+ .playActions{gap:3px}
+ .subButton{padding-inline:5px}
+ h1{font-size:21px;margin-top:1px}
+ .eyebrow{font-size:9px}
+ .play{width:min(100%,max(230px,calc((100dvh - 83px)*1.78)));justify-self:center;align-self:center}
+ .scoreboard{grid-template-columns:1fr 1fr;gap:5px}
+ .round{grid-column:1/-1;grid-row:2;display:flex;justify-content:center;gap:6px;padding:3px 0}
+ .playerCard{gap:4px;min-height:47px;padding:5px}
+ .playerName,.shotBalance{font-size:9px}
+ .avatar{width:23px;height:23px;font-size:11px}
+ .points{font-size:20px}
+ .console{padding:8px;align-self:start}
+ .controlRow{grid-template-columns:1fr;gap:2px}
+ .message{margin-bottom:5px;min-height:16px}
+ #power{height:29px}
+ .shoot{min-height:44px}
+}
+@media(max-height:590px) and (orientation:portrait){.match{padding-top:9px;gap:9px}}
+@media (orientation:landscape) and (max-height:305px){
+ .match{row-gap:5px;padding-block:6px}
+ .console{padding-block:6px}
+ .message{font-size:11px}
+}
+
+.match[data-tall=true]{height:100dvh;grid-template-rows:auto auto minmax(0,1fr) auto;gap:6px;padding-top:5px;padding-bottom:max(7px,env(safe-area-inset-bottom))}
+.match[data-tall=true] .scene{height:100%;width:auto;max-width:100%;max-height:calc((100vw - 56px)*1.77866);aspect-ratio:506/900;justify-self:center;align-self:center;margin:0}
+.match[data-tall=true] #poolBoard{position:absolute;left:50%;top:50%;width:177.866%;height:auto;transform:translate(-50%,-50%) rotate(90deg)}
+.match[data-tall=true] .play{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:7px;background:radial-gradient(ellipse at center,#22483b,#101e23)}
+.match[data-tall=true] .tableHeader,.match[data-tall=true] .tableFooter{padding-block:3px}
+.match[data-tall=true] .message{margin-bottom:4px}
+body:has(.match[data-tall=true]) #callSheet .pocketMap{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 18px}
+body:has(.match[data-tall=true]) [data-pocket="0"]{order:1}
+body:has(.match[data-tall=true]) [data-pocket="1"]{order:3}
+body:has(.match[data-tall=true]) [data-pocket="2"]{order:5}
+body:has(.match[data-tall=true]) [data-pocket="4"]{order:2}
+body:has(.match[data-tall=true]) [data-pocket="5"]{order:4}
+
+.match[data-tall=true] h1{font-size:clamp(17px,5vw,23px)}
+.match[data-tall=true] .playerCard{min-height:44px;padding:5px 8px}
+.match[data-tall=true] .clubMark{display:none}
+
+</style>
+<style>.masthead h1{letter-spacing:-.05em}.playerCard.current{border-color:var(--accent,#a1e7cc)}.subButton{min-height:44px}.challengeCard{gap:7px}.challengeCard p{line-height:1.25}.message{font-variant-numeric:tabular-nums}.shoot:active{transform:translateY(1px)}
+/* Property route tickets */
+.routeCards .routeCard{align-content:start;border-radius:14px;padding:11px;gap:6px;background:#f6fbf5;border:1px solid #8fb3a4;color:#163b33}
+.routeCards .route1{background:#f7f1ff;border-color:#b29bc8;color:#3f2854}
+.routeBudget{display:grid;gap:2px;margin-top:3px;padding-top:7px;border-top:1px dashed currentColor}
+.routeBudget small{font-size:10px;font-weight:600}.routeBudget b{font-size:18px;line-height:1.1;font-variant-numeric:tabular-nums}
+
+/* Private word deal and post-match sketch prints */
+html[data-us-party=draw] .handOff{background:linear-gradient(145deg,#302267,#1e1b36);border:1px solid #61518d;border-radius:22px;color:#fff8f2;box-shadow:0 12px 28px #2414471c}
+html[data-us-party=draw] .handOff p{color:#ded8ef}.handOff .tag{background:#d5f185;color:#202918}
+.wordPair{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:18px 0 0}
+.wordPair button{min-width:0;min-height:87px;border:1px solid #d6c6f5;border-radius:15px;background:#e6dafd;color:#2b174c;font-weight:800;font-size:19px;letter-spacing:-.03em;overflow-wrap:break-word}
+.wordPair button+button{background:#fce2a4;border-color:#ebcb82;color:#483317}
+.sketchGallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.sketchGallery figure{margin:0;background:#fff;border:1px solid #d5cde4;border-radius:12px;overflow:hidden}
+.sketchGallery img{display:block;width:100%;aspect-ratio:1;background:#fff}
+.sketchGallery figcaption{padding:6px 7px;background:#f0ebf9}.sketchGallery b,.sketchGallery small{display:block}.sketchGallery small{color:#544765}
+html[data-us-party=draw] .seat.hot .avatar{outline:2px solid #48318d;outline-offset:2px}
+
+html[data-us-party=draw] .roomFace.avatar{font-size:0;color:transparent;background-repeat:no-repeat;border:1px solid #38314324}
+.handoffFace{width:74px;height:74px;margin-bottom:15px;border-radius:20px;box-shadow:0 2px 0 #09061755,0 0 0 2px #faf2fc}
+.grid .portrait.roomFace{position:relative;width:38px;height:38px;margin:0 0 5px;border-radius:10px;box-shadow:0 0 0 1px #ffffff24}
+.grid .portrait.roomFace i{position:absolute;bottom:-1px;right:-4px;display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#141a28;color:#fff3d4;border:1px solid #86869c;font:700 9px/1 system-ui}
+.grid .seat:has(.roomFace){min-height:84px;line-height:1.15}.grid .seat:has(.roomFace) small{line-height:1.2;margin-top:2px}
+dialog.routePopup>small{color:#4e5b57}
+/* Evidence stays next to the current ballot */
+.evidence{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px 8px;margin-top:9px;padding:11px 12px;border:1px solid #5b697a;border-inline-start:4px solid #acdacd;border-radius:12px;background:#192b35;color:#edf5ef}
+.evidence small,.evidence p{grid-column:1}.evidence small{font-size:10px;color:#abd6ca;letter-spacing:.06em;text-transform:uppercase}.evidence strong{grid-column:1;font-size:16px}
+.evidence p{margin:0;font-size:12px}.evidence button{min-height:44px;grid-column:2;grid-row:1/4;padding:4px 9px;background:#2b3b45;border:1px solid #729287;color:#edfff5}
+.evidence button[aria-pressed=true]{background:#d4e9c7;color:#192b21}
+.grid .seat[aria-pressed=true]{outline:2px solid #e6c090;outline-offset:-2px}
+
+/* Two-person party rounds */
+html[data-us-party=quiz] .turnChip,html[data-us-party=truth] .turnChip{display:inline-flex;align-items:center;border-radius:20px;background:#262134;color:#fff6ee;padding:5px 10px;font-weight:700}
+html[data-us-party=quiz] .choice,html[data-us-party=truth] .choice{min-height:53px;line-height:1.25;text-align:left;padding:10px 14px;border-radius:13px}
+html[data-us-party=quiz] .choice{border-left:4px solid #7f6be5}html[data-us-party=truth] .choice{border-left:4px solid #c96550}
+.readBoost,.party-prompt [data-a=newTopic]{min-height:44px;padding:5px 12px;border:1px solid #9886c6;border-radius:12px;background:#fffcff;color:#443674;font-weight:700}
+.readBoost{margin:0 8px 8px}.readBoost[aria-pressed=true]{color:white;background:#483881}.party-prompt [data-a=newTopic]{display:block;margin:8px 0 0;border-color:#c4816d;color:#7c362a;background:#fff7f2}
+html[data-us-party=truth] #facts label{font-size:13px;font-weight:700}html[data-us-party=truth] #facts input{min-height:46px;font-size:16px}
+.party-insights small{font-weight:750;color:#413585}
+
+/* Field, mine, table and fighter controls */
+.hud [data-action=hint]{color:#e5ffc2;border-color:#92bb77}
+.hookButton.dropReady{border:2px dashed #ffce83;background:#3b2c20;color:#ffe1a5}.hookButton.dropReady small{color:#ffe0ac}
+.fineAim{display:flex;align-items:center;gap:5px;color:#cdf4e4}.fineAim button{width:44px;height:44px;border:1px solid #486662;border-radius:10px;background:#203a3b;color:#d9ffee;font:700 20px/1 system-ui;touch-action:manipulation}
+.fineAim button:disabled{opacity:.4}.fineAim span{font-size:10px;text-align:center}.fineAim output{display:block;font-weight:700;font-size:11px;min-width:36px;font-variant-numeric:tabular-nums}
+@media(max-width:355px){.fineAim{gap:2px}.tableFooter{gap:3px}.ballTray{gap:1px}}
+.hpCount{color:#cadbe3;font-size:10px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sideControls button.special.chainReady{outline:3px solid #cbffbe;outline-offset:-2px;background:#cbffbe;color:#16261c}
+
+button:focus-visible,[role=button]:focus-visible{outline:3px solid #8380ed;outline-offset:2px}button:active:not(:disabled){filter:brightness(.91)}</style><style>@keyframes dealIn{from{opacity:.25;transform:translateY(9px) rotate(-1deg)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.roundTrack{display:flex;gap:4px;margin:8px 0 13px}.roundTrack i{flex:1;height:4px;border-radius:9px;background:#b8abc14d}.roundTrack i.filled{background:var(--track,#7550cc)}
+
+.callRow{display:flex;gap:7px;align-items:center;margin:1px 0 8px}.callRow[hidden]{display:none}.callRow button,.pocketMap button{min-height:44px;background:#233b36;border:1px solid #6e9075;color:#f7efd0;border-radius:10px;font:700 12px system-ui}.callRow small{font-size:11px;color:#c4d2c3}.callRow button:disabled{opacity:.52}
+#callSheet p{margin:6px 0 14px;color:#d9e6db;line-height:1.4}.pocketMap{display:grid;grid-template-columns:repeat(3,1fr);gap:17px 6px;background:linear-gradient(135deg,#1d5b50,#133e3b);border:5px solid #725739;padding:7px;border-radius:14px}.pocketMap button[aria-pressed=true]{background:#f1d891;color:#332c1d}.pocketMap button{min-width:0;padding:4px}.pocketMap+form{margin-top:12px;display:flex;justify-content:space-between}
+@media(orientation:landscape) and (max-height:500px){.callRow{margin:0;gap:4px}.callRow button{min-height:35px}.callRow small{font-size:10px}}
+</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script></head>
+<body>
+<main class="match" data-side="0">
+ <header class="masthead">
+  <div class="heading">
+   <span class="clubMark" aria-hidden="true"><i></i></span>
+   <div>
+    <p class="eyebrow">Local versus · 12 shots</p>
+    <h1>After Hours Pool</h1>
+   </div>
+  </div>
+  <div class="playActions">
+   <button class="subButton modeButton" id="poolMode" type="button" aria-label="Play trick shots">Trick shots</button>
+   <button class="subButton" id="openRules" type="button">Rules</button>
+  </div>
+ </header>
+ <section class="scoreboard" aria-label="Match score">
+  <article class="playerCard" data-player="0">
+   <span class="avatar" aria-hidden="true">A</span>
+   <div><p class="playerName">Player A</p><p class="shotBalance" id="left0">6 shots left</p></div>
+   <strong class="points" id="score0">0</strong>
+  </article>
+  <div class="round"><span>Shot</span><strong><output id="shotIndex">01</output><small> / 12</small></strong></div>
+  <article class="playerCard" data-player="1">
+   <span class="avatar" aria-hidden="true">B</span>
+   <div><p class="playerName">Player B</p><p class="shotBalance" id="left1">6 shots left</p></div>
+   <strong class="points" id="score1">0</strong>
+  </article>
+ </section>
+ <section class="challengeCard" hidden aria-label="Trick shot objective">
+  <div><p class="eyebrow" id="challengeProgress"></p><h2 id="challengeTitle"></h2></div>
+  <p id="challengeAttempts"></p>
+ </section>
+ <section class="play">
+  <header class="tableHeader">
+   <strong class="turn"><span></span><output id="turn">Player A to shoot</output></strong>
+   <p class="objectCount">Balls left <strong id="remaining">9</strong></p>
+  </header>
+  <div class="scene">
+   <canvas id="poolBoard" width="900" height="506" tabindex="0" aria-label="Pool table. Touch to aim.">Canvas support is required.</canvas>
+   <section class="result" hidden>
+    <div class="resultCard">
+     <p id="resultLabel">Match over</p>
+     <h2 id="winner"></h2>
+     <p id="finalScore"></p>
+     <button type="button" class="shoot" id="replay">Play again</button>
+    </div>
+   </section>
+  </div>
+  <div class="tableFooter">
+   <div class="ballTray" aria-label="Object balls"></div>
+   <div class="fineAim" role="group" aria-label="Fine aim"><button data-nudge="-1" aria-label="Rotate aim left half a degree">−</button><span>Fine aim<output id="aimAngle"></output></span><button data-nudge="1" aria-label="Rotate aim right half a degree">+</button></div>
+  </div>
+ </section>
+ <section class="console" aria-label="Shot controls">
+  <span id="aimHint" hidden>Tap or drag to aim</span><p class="message" id="message" role="status" aria-live="polite">Aim at the rack and set your power. Gold pocket: 2 points.</p>
+  <div class="callRow"><button type="button" id="callPocket">Call a pocket</button><small id="callState"></small></div><div class="controlRow">
+   <div class="powerControl">
+    <label for="power">Power <output for="power" id="powerValue">76%</output></label>
+    <input id="power" name="power" type="range" min="10" max="100" value="76">
+   </div>
+   <button class="shoot" id="shoot" type="button">Break <span aria-hidden="true">↗</span></button>
+  </div>
+ </section>
+</main>
+<dialog id="callSheet" aria-labelledby="callTitle"><h2 id="callTitle">Call your pocket</h2><p>One call per player. Sink a ball in your called pocket for 3 points. Other pockets score 1.</p><div class="pocketMap" role="group" aria-label="Pocket position"><button type="button" data-pocket="0" aria-pressed="false">Top left</button><button type="button" data-pocket="1" aria-pressed="false">Top side</button><button type="button" data-pocket="2" aria-pressed="false">Top right</button><button type="button" data-pocket="3" aria-pressed="false">Bottom left</button><button type="button" data-pocket="4" aria-pressed="false">Bottom side</button><button type="button" data-pocket="5" aria-pressed="false">Bottom right</button></div><form method="dialog"><button type="submit" class="subButton">Back to table</button><button type="button" id="clearCall" class="subButton">Clear call</button></form></dialog>
+<dialog id="rules" aria-labelledby="rulesTitle">
+ <form method="dialog">
+  <h2 id="rulesTitle">Match rules</h2>
+  <ul id="duelRules">
+   <li>Tap or drag to aim. The blue line shows the cue ball’s bank path.</li>
+   <li>Each player gets six shots. Score 1 per object ball, or 2 for sinking it in the gold pocket.</li>
+   <li>Once per player, Call a pocket assigns the 3-point pocket for one shot. A scratch cancels all points for that shot. The next player places the cue ball in the highlighted area.</li>
+   <li>The match ends after 12 shots or when the table clears. High score wins.</li>
+  </ul>
+  <ul id="challengeRules" hidden>
+   <li>You get three attempts per trick shot. The layout resets between attempts.</li>
+   <li>Pocket the marked ball in the glowing pocket without scratching.</li>
+   <li>On the last table, bank the cue ball off the right rail before pocketing the marked ball.</li>
+  </ul>
+  <button type="submit" class="shoot">Got it</button>
+ </form>
+</dialog>
+<script>
+'use strict';
+const POOL_TABLE = {
+ width:900, height:506, left:65, right:835, top:62, bottom:444, ballRadius:13,
+ pockets:[
+  {x:65,y:62,radius:29},{x:450,y:62,radius:26},{x:835,y:62,radius:29},
+  {x:65,y:444,radius:29},{x:450,y:444,radius:26},{x:835,y:444,radius:29}
+ ]
+};
+const POOL_PLACEMENT = {
+ left:POOL_TABLE.left+POOL_TABLE.ballRadius+3,right:POOL_TABLE.left+(POOL_TABLE.right-POOL_TABLE.left)*.25,
+ top:POOL_TABLE.top+POOL_TABLE.ballRadius+3,bottom:POOL_TABLE.bottom-POOL_TABLE.ballRadius-3
+};
+const POOL_RAIL_RESTITUTION=.79;
+
+function createPoolEngine(){
+ const {left,right,top,bottom,ballRadius:radius,pockets}=POOL_TABLE;
+ const centerX=(left+right)/2,centerY=(top+bottom)/2;
+ const diameter=2*radius, cueStart={x:225,y:centerY};
+ const cornerGap=pockets[0].radius+3, sideGap=pockets[1].radius+3;
+ const cushions=[
+  {axis:'y',edge:top,side:1,from:left+cornerGap,to:centerX-sideGap},
+  {axis:'y',edge:top,side:1,from:centerX+sideGap,to:right-cornerGap},
+  {axis:'y',edge:bottom,side:-1,from:left+cornerGap,to:centerX-sideGap},
+  {axis:'y',edge:bottom,side:-1,from:centerX+sideGap,to:right-cornerGap},
+  {axis:'x',edge:left,side:1,from:top+cornerGap,to:bottom-cornerGap},
+  {axis:'x',edge:right,side:-1,from:top+cornerGap,to:bottom-cornerGap}
+ ];
+ let balls=[];
+ const makeBall=(number,x,y)=>({number,x,y,vx:0,vy:0,pocketed:false});
+
+ function reset(){
+  const rows=[[1],[2,3],[4,9,5],[6,7],[8]];
+  const spacing=diameter+.55;
+  balls=[makeBall(0,cueStart.x,cueStart.y)];
+  for(const [row,group] of rows.entries()){
+   for(const [index,number] of group.entries()){
+    balls.push(makeBall(number,575+row*spacing*Math.sqrt(3)/2,centerY+(index-(group.length-1)/2)*spacing));
+   }
+  }
+ }
+
+ function isMoving(){
+  return balls.some(ball=>!ball.pocketed&&(ball.vx!==0||ball.vy!==0));
+ }
+
+ function strike(angle,power){
+  const cue=balls[0];
+  if(cue.pocketed||isMoving()||!Number.isFinite(angle)||!Number.isFinite(power)||power<=0)return false;
+  const speed=62+1150*Math.pow(Math.min(1,power),1.2);
+  cue.vx=Math.cos(angle)*speed;cue.vy=Math.sin(angle)*speed;
+  return true;
+ }
+
+ function drop(ball,pocket,events){
+  events.push({type:'pocket',number:ball.number,x:pocket.x,y:pocket.y,fromX:ball.x,fromY:ball.y});
+  Object.assign(ball,{x:pocket.x,y:pocket.y,vx:0,vy:0,pocketed:true});
+ }
+
+ function pocketAt(ball,margin=0){
+  return pockets.find(p=>Math.hypot(ball.x-p.x,ball.y-p.y)<p.radius-4+margin);
+ }
+
+ function cushionHit(ball,cushion,events){
+  const {axis,edge,side,from,to}=cushion;
+  const horizontal=axis==='y';
+  const across=horizontal?ball.y:ball.x, along=horizontal?ball.x:ball.y;
+  const depth=(across-edge)*side;
+  if(depth>=radius||along<from-radius||along>to+radius)return;
+  const closest=Math.max(from,Math.min(to,along));
+  const offset=along-closest;
+  const distance=offset?Math.hypot(depth,offset):depth;
+  if(distance>=radius)return;
+  const normalAcross=offset?Math.max(0,depth)/distance:1;
+  const normalAlong=offset?offset/distance:0;
+  const nx=horizontal?normalAlong:side*normalAcross;
+  const ny=horizontal?side*normalAcross:normalAlong;
+  const penetration=radius-distance;
+  ball.x+=nx*penetration;ball.y+=ny*penetration;
+  const inbound=ball.vx*nx+ball.vy*ny;
+  if(inbound>=0)return;
+  const impulse=-(1+POOL_RAIL_RESTITUTION)*inbound;
+  ball.vx+=impulse*nx;ball.vy+=impulse*ny;
+  if(inbound < -22)events.push({type:'rail',number:ball.number,x:ball.x,y:ball.y,strength:Math.min(1,-inbound/880)});
+ }
+
+ function collide(first,second,events){
+  const dx=second.x-first.x,dy=second.y-first.y,sum=dx*dx+dy*dy;
+  if(sum>=diameter*diameter)return;
+  const distance=Math.sqrt(sum),nx=distance>0?dx/distance:1,ny=distance>0?dy/distance:0;
+  const shift=(diameter-distance)/2;
+  first.x-=nx*shift;first.y-=ny*shift;second.x+=nx*shift;second.y+=ny*shift;
+  const closing=(first.vx-second.vx)*nx+(first.vy-second.vy)*ny;
+  if(closing<=0)return;
+  const impulse=closing*.965;
+  first.vx-=impulse*nx;first.vy-=impulse*ny;second.vx+=impulse*nx;second.vy+=impulse*ny;
+  if(closing>22)events.push({type:'impact',x:(first.x+second.x)/2,y:(first.y+second.y)/2,strength:Math.min(1,closing/950)});
+ }
+
+ function advance(ball,dt,events){
+  ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
+  const pocket=pocketAt(ball);
+  if(pocket){drop(ball,pocket,events);return}
+  for(const cushion of cushions)cushionHit(ball,cushion,events);
+  // Capture a ball that crossed a pocket mouth before it can leave the table.
+  if(ball.x<left||ball.x>right||ball.y<top||ball.y>bottom){
+   const mouth=pocketAt(ball,10);
+   if(mouth){drop(ball,mouth,events);return}
+   ball.x=Math.max(left+radius,Math.min(right-radius,ball.x));
+   ball.y=Math.max(top+radius,Math.min(bottom-radius,ball.y));
+  }
+  const speed=Math.hypot(ball.vx,ball.vy);
+  const remaining=Math.max(0,speed-dt*(68+.34*speed));
+  if(remaining<5){ball.vx=0;ball.vy=0;return}
+  ball.vx*=remaining/speed;ball.vy*=remaining/speed;
+ }
+
+ function step(dt){
+  const events=[];
+  if(!Number.isFinite(dt)||dt<=0||!isMoving())return events;
+  const count=Math.ceil(dt*240),increment=dt/count;
+  for(let n=0;n<count;n++){
+   for(const ball of balls)if(!ball.pocketed)advance(ball,increment,events);
+   for(let i=0;i<balls.length-1;i++){
+    if(balls[i].pocketed)continue;
+    for(let j=i+1;j<balls.length;j++)if(!balls[j].pocketed)collide(balls[i],balls[j],events);
+   }
+  }
+  return events;
+ }
+
+ function preview(angle,origin=balls[0]){
+  const cue=balls[0],ux=Math.cos(angle),uy=Math.sin(angle);
+  let nearest=POOL_TABLE.width+POOL_TABLE.height,target=null,pocket=null,rail=null;
+  const consider=(distance,ball=null,hole=null,axis=null)=>{
+   if(distance<-.01||distance>=nearest)return;
+   nearest=Math.max(0,distance);target=ball;pocket=hole;rail=axis;
+  };
+  const circleHit=(x,y,r)=>{
+   const dx=x-origin.x,dy=y-origin.y;
+   const along=dx*ux+dy*uy,offset=dx*uy-dy*ux;
+   const square=r*r-offset*offset;
+   return square>=0?along-Math.sqrt(square):Infinity;
+  };
+  for(const cushion of cushions){
+   const {axis,edge,side,from,to}=cushion;
+   const horizontal=axis==='y';
+   const direction=horizontal?uy:ux;
+   if(direction*side>=-1e-6)continue;
+   const across=horizontal?origin.y:origin.x,along=horizontal?origin.x:origin.y;
+   const distance=(edge+side*radius-across)/direction;
+   const intersection=along+distance*(horizontal?ux:uy);
+   if(intersection>=from&&intersection<=to)consider(distance,null,null,axis);
+   for(const jaw of [from,to])consider(circleHit(horizontal?jaw:edge,horizontal?edge:jaw,radius));
+  }
+  for(const hole of pockets)consider(circleHit(hole.x,hole.y,hole.radius-4),null,hole);
+  for(const ball of balls)if(ball!==cue&&!ball.pocketed)consider(circleHit(ball.x,ball.y,diameter),ball);
+  return {x:origin.x+ux*nearest,y:origin.y+uy*nearest,ball:target,pocket,rail};
+ }
+
+ function canPlaceCue(x,y){
+  const zone=POOL_PLACEMENT;
+  return x>=zone.left&&x<=zone.right&&y>=zone.top&&y<=zone.bottom&&
+   balls.every(ball=>ball.number===0||ball.pocketed||Math.hypot(x-ball.x,y-ball.y)>=diameter+2);
+ }
+ function placeCue(x,y){
+  if(isMoving()||!canPlaceCue(x,y))return false;
+  Object.assign(balls[0],{x,y,vx:0,vy:0,pocketed:false});
+  return true;
+ }
+ function respotCue(){
+  const cue=balls[0];
+  if(!cue.pocketed||isMoving())return false;
+  const xOffsets=[0,-34,34,-68,68,-102,102];
+  const yOffsets=[0,-34,34,-68,68,-102,102];
+  for(const dx of xOffsets){
+   for(const dy of yOffsets){
+    const x=cueStart.x+dx,y=cueStart.y+dy;
+    if(placeCue(x,y))return true;
+   }
+  }
+  return false;
+ }
+
+ reset();
+ return {get balls(){return balls},get cue(){return balls[0]},reset,strike,step,isMoving,preview,canPlaceCue,placeCue,respotCue};
+}
+
+function createPoolRenderer(canvas) {
+ const table = POOL_TABLE;
+ const {width,height,left,right,top,bottom,ballRadius,pockets} = table;
+ const ratio = Math.min(2, window.devicePixelRatio || 1);
+ canvas.width = width * ratio;
+ canvas.height = height * ratio;
+ const ctx = canvas.getContext('2d');
+ const deck = document.createElement('canvas');
+ deck.width = canvas.width;
+ deck.height = canvas.height;
+ const dc = deck.getContext('2d');
+ dc.scale(ratio,ratio);
+ const paint = ['#f5efe0','#fecd50','#428fe6','#f45d4c','#a974dc','#f59243','#519c63','#a8475c','#262f38','#e9b945'];
+ const tau = Math.PI * 2;
+
+ function rounded(c,x,y,w,h,r) {
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+ }
+ function polygon(c,points) {
+  c.beginPath();c.moveTo(...points[0]);
+  for(const point of points.slice(1))c.lineTo(...point);
+  c.closePath();
+ }
+ function circle(c,x,y,r) {
+  c.beginPath();c.arc(x,y,r,0,tau);
+ }
+ function linear(c,x1,y1,x2,y2,stops) {
+  const fill=c.createLinearGradient(x1,y1,x2,y2);
+  for(const [at,color] of stops)fill.addColorStop(at,color);
+  return fill;
+ }
+ function crest(x,y) {
+  polygon(dc,[[x-6,y],[x,y-4],[x+6,y],[x,y+4]]);
+  dc.fillStyle='#e0b487';dc.fill();
+  dc.strokeStyle='#160e10';dc.lineWidth=1;dc.stroke();
+ }
+ function staticDeck() {
+  dc.save();
+  dc.shadowColor='rgba(0,0,0,.72)';dc.shadowBlur=26;dc.shadowOffsetY=10;
+  rounded(dc,18,18,864,470,42);
+  dc.fillStyle='#080d11';dc.fill();
+  dc.restore();
+  rounded(dc,23,16,854,468,39);
+  dc.fillStyle=linear(dc,0,14,0,485,[[0,'#744935'],[.08,'#452c25'],[.5,'#261e20'],[.94,'#513329'],[1,'#1b1519']]);dc.fill();
+  dc.lineWidth=2;dc.strokeStyle='#aa7957';dc.stroke();
+  rounded(dc,32,25,836,450,32);
+  dc.fillStyle=linear(dc,0,24,0,475,[[0,'#824f34'],[.065,'#583624'],[.5,'#492c22'],[.94,'#643c27'],[1,'#39231e']]);dc.fill();
+  dc.lineWidth=1.5;dc.strokeStyle='#b783527f';dc.stroke();
+
+  dc.save();
+  dc.clip();
+  for(let n=0;n<70;n++){
+   const y=27+n*6.4, drift=Math.sin(n*2.63)*14;
+   dc.beginPath();dc.moveTo(30,y);
+   dc.bezierCurveTo(280,y-4+drift,553,y+9-drift,870,y+2);
+   dc.lineWidth=n%3===0?1.3:.75;
+   dc.strokeStyle=n%3===0?'#29181750':'#da956230';dc.stroke();
+  }
+  dc.restore();
+
+  const margin=27;
+  const feltOutline=[[left,top+margin],[left+margin,top],[right-margin,top],[right,top+margin],
+   [right,bottom-margin],[right-margin,bottom],[left+margin,bottom],[left,bottom-margin]];
+  const rim=feltOutline.map(([x,y])=>[x+(x<width/2?-13:13),y+(y<height/2?-12:12)]);
+  polygon(dc,rim);dc.fillStyle='#101d1a';dc.fill();
+  dc.lineWidth=2.5;dc.strokeStyle='#c58d5b92';dc.stroke();
+
+  polygon(dc,feltOutline);
+  dc.save();dc.clip();
+  const felt=dc.createRadialGradient(346,167,24,width/2,height/2,520);
+  felt.addColorStop(0,'#24795f');
+  felt.addColorStop(.57,'#16614e');
+  felt.addColorStop(1,'#0c433c');
+  dc.fillStyle=felt;dc.fillRect(left,top,right-left,bottom-top);
+  const grain=document.createElement('canvas');
+  grain.width=128;grain.height=128;
+  const gc=grain.getContext('2d');
+  const pixels=gc.createImageData(128,128);
+  let seed=239057;
+  for(let i=0;i<pixels.data.length;i+=4){
+   seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+   const light=seed>0x7fffffff?255:0;
+   pixels.data[i]=light;pixels.data[i+1]=light;pixels.data[i+2]=light;
+   pixels.data[i+3]=(seed>>>26)&15;
+  }
+  gc.putImageData(pixels,0,0);
+  dc.fillStyle=dc.createPattern(grain,'repeat');
+  dc.fillRect(left,top,right-left,bottom-top);
+  dc.strokeStyle='#002a2458';dc.lineWidth=12;
+  polygon(dc,feltOutline);dc.stroke();
+  dc.strokeStyle='#b7f4cc19';dc.lineWidth=1.2;dc.setLineDash([2,6]);
+  dc.strokeRect(left+28,top+24,right-left-56,bottom-top-48);
+  dc.setLineDash([]);
+  const head=left+(right-left)*.25;
+  const foot=right-(right-left)*.25;
+  dc.strokeStyle='#c9f3d330';dc.lineWidth=1.3;dc.setLineDash([4,7]);
+  dc.beginPath();dc.moveTo(head,top+20);dc.lineTo(head,bottom-20);dc.stroke();
+  dc.setLineDash([]);
+  for(const x of [head,foot]){
+   circle(dc,x,height/2,4.6);dc.fillStyle='#c9f3d342';dc.fill();
+   circle(dc,x,height/2,8.6);dc.strokeStyle='#c9f3d328';dc.stroke();
+  }
+  dc.restore();
+
+  const middle=width/2;
+  function longCushion(y,direction,start,end,nearStart,nearEnd) {
+   polygon(dc,[[start,y+direction*12],[end,y+direction*12],
+    [end-nearEnd,y],[start+nearStart,y]]);
+   dc.fillStyle=linear(dc,0,y+direction*12,0,y,[[0,'#153b31'],[.7,'#25745a'],[1,'#3d9473']]);dc.fill();
+   dc.strokeStyle='#8bd0a680';dc.lineWidth=1.3;dc.stroke();
+  }
+  for(const [y,direction] of [[top,-1],[bottom,1]]){
+   longCushion(y,direction,left+23,middle-22,10,7);
+   longCushion(y,direction,middle+22,right-23,7,10);
+   for(let p=1;p<8;p++)if(p!==4)crest(left+(right-left)*p/8,y+direction*25);
+  }
+  for(const [x,direction] of [[left,-1],[right,1]]){
+   polygon(dc,[[x+direction*12,top+24],[x,top+32],[x,bottom-32],[x+direction*12,bottom-24]]);
+   dc.fillStyle=linear(dc,x+direction*12,0,x,0,[[0,'#14392f'],[.7,'#20614f'],[1,'#348c70']]);dc.fill();
+   dc.strokeStyle='#90cb9b70';dc.lineWidth=1.3;dc.stroke();
+   for(let p=1;p<4;p++)crest(x+direction*23,top+(bottom-top)*p/4);
+  }
+  for(const pocket of pockets)drawPocket(pocket);
+ }
+
+ function drawPocket({x,y,radius}) {
+  const r=radius || 24;
+  dc.save();
+  dc.shadowColor='#030509';dc.shadowBlur=9;dc.shadowOffsetY=2;
+  circle(dc,x,y,r+3.5);
+  dc.fillStyle=linear(dc,0,y-r,0,y+r,[[0,'#624e40'],[.48,'#342920'],[1,'#a17b56']]);dc.fill();
+  dc.restore();
+  circle(dc,x,y,r+.5);
+  dc.fillStyle=linear(dc,0,y-r,0,y+r,[[0,'#121a1b'],[.59,'#050b10'],[1,'#121917']]);dc.fill();
+  dc.strokeStyle='#d0ab7952';dc.lineWidth=1.2;dc.stroke();
+  dc.beginPath();dc.arc(x,y,r-2.5,.15,2.99);
+  dc.lineWidth=1.7;dc.strokeStyle='#685a4d';dc.stroke();
+ }
+
+ function renderBall(ball,tall) {
+  const {x,y,number}=ball,r=ballRadius;
+  if(ball.pocketed)return;
+  const base=paint[number]||'#dddfe2';
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.beginPath();ctx.ellipse(2.8,5,r+2,r*.86,0,0,tau);
+  ctx.fillStyle='#031b1bb5';ctx.fill();
+  circle(ctx,0,0,r);
+  ctx.clip();
+  ctx.fillStyle=number===9?'#fff5d5':base;ctx.fillRect(-r,-r,2*r,2*r);
+  if(number===9){ctx.fillStyle=base;ctx.fillRect(-r,-r*.56,2*r,r*1.12);}
+  const lighting=ctx.createRadialGradient(-r*.46,-r*.55,.5,0,0,r*1.08);
+  lighting.addColorStop(0,'#ffffffa8');
+  lighting.addColorStop(.45,'#ffffff10');
+  lighting.addColorStop(.75,'#00000014');
+  lighting.addColorStop(1,'#060b13a3');
+  ctx.fillStyle=lighting;ctx.fillRect(-r,-r,2*r,2*r);
+  if(number>0){
+   circle(ctx,.8,.8,r*.61);
+   ctx.fillStyle='#fbf6ea';ctx.fill();
+   ctx.fillStyle='#192128';ctx.font='800 15px Arial,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+   ctx.save();if(tall)ctx.rotate(-Math.PI/2);ctx.fillText(String(number),1,1.5);ctx.restore();
+  }
+  ctx.beginPath();ctx.ellipse(-r*.45,-r*.56,r*.27,r*.11,-.6,0,tau);
+  ctx.fillStyle='#ffffffa0';ctx.fill();
+  ctx.restore();
+  circle(ctx,x,y,r-.45);
+  ctx.strokeStyle=number===0?'#fef8d6e8':'#131c2285';ctx.lineWidth=number===0?1.9:1;ctx.stroke();
+ }
+
+ function drawGuide(frame, cue, tint) {
+  const target=frame.engine.preview(frame.angle);
+  if(!target)return;
+  ctx.save();
+  ctx.beginPath();ctx.rect(left-ballRadius,top-ballRadius,right-left+ballRadius*2,bottom-top+ballRadius*2);ctx.clip();
+  const dx=Math.cos(frame.angle),dy=Math.sin(frame.angle);
+  ctx.lineCap='round';ctx.lineWidth=2.2;ctx.setLineDash([5,8]);
+  ctx.strokeStyle=tint;
+  ctx.globalAlpha=.74;ctx.beginPath();ctx.moveTo(cue.x+dx*(ballRadius+5),cue.y+dy*(ballRadius+5));ctx.lineTo(target.x,target.y);ctx.stroke();
+  ctx.setLineDash([]);ctx.globalAlpha=.68;
+  circle(ctx,target.x,target.y,ballRadius);ctx.lineWidth=1.7;ctx.stroke();
+  if(target.ball){
+   const {x,y}=target.ball;
+   const distance=Math.hypot(x-target.x,y-target.y);
+   if(distance>.1){
+    const nx=(x-target.x)/distance,ny=(y-target.y)/distance;
+    ctx.beginPath();ctx.moveTo(x+nx*(ballRadius+3),y+ny*(ballRadius+3));ctx.lineTo(x+nx*103,y+ny*103);
+    ctx.setLineDash([4,7]);ctx.strokeStyle='#ffd483';ctx.lineWidth=2.1;ctx.stroke();
+   }
+  }else if(target.rail){
+   const vx=target.rail==='x'?-dx*POOL_RAIL_RESTITUTION:dx;
+   const vy=target.rail==='y'?-dy*POOL_RAIL_RESTITUTION:dy;
+   const origin={x:target.x+vx*.1,y:target.y+vy*.1};
+   const reflected=frame.engine.preview(Math.atan2(vy,vx),origin);
+   ctx.beginPath();ctx.moveTo(origin.x,origin.y);ctx.lineTo(reflected.x,reflected.y);
+   ctx.setLineDash([8,7]);ctx.strokeStyle='#9cdcff';ctx.lineWidth=2.4;ctx.stroke();ctx.setLineDash([]);
+   circle(ctx,target.x,target.y,4);ctx.fillStyle='#b2e4ff';ctx.fill();
+  }
+  ctx.restore();
+ }
+
+ function drawPlacement(tall){
+  const {left,right,top,bottom}=POOL_PLACEMENT;
+  ctx.save();
+  ctx.fillStyle='#b0ffdf26';
+  ctx.fillRect(left,top,right-left,bottom-top);
+  ctx.strokeStyle='#a4ffe0';ctx.lineWidth=2;ctx.setLineDash([9,6]);
+  ctx.strokeRect(left,top,right-left,bottom-top);
+  ctx.setLineDash([]);
+  ctx.font='700 23px system-ui,sans-serif';ctx.textAlign='center';ctx.fillStyle='#c9ffe7';
+  ctx.translate((left+right)/2,tall?(top+bottom)/2:top+34);if(tall)ctx.rotate(-Math.PI/2);ctx.fillText('Place cue ball here',0,0);
+  ctx.restore();
+ }
+
+ function drawCue(frame,cue) {
+  const stroke=frame.phase==='stroke';
+  const progress=Math.max(0,Math.min(1,frame.shotProgress||0));
+  const power=Math.max(0,Math.min(1,frame.power||0));
+  const draw=power*29;
+  const pull=stroke?(progress<.63?draw+Math.sin(progress/.63*Math.PI/2)*(12+draw*.3):
+   (draw+12+draw*.3)*(1-((progress-.63)/.37)**1.75)):4+draw;
+  ctx.save();
+  ctx.translate(cue.x,cue.y);
+  ctx.rotate(frame.angle);
+  const nose=-(ballRadius+pull);
+  const dx=Math.cos(frame.angle),dy=Math.sin(frame.angle);
+  const roomX=Math.abs(dx)>.0001?(dx>0?cue.x-14:width-cue.x-14)/Math.abs(dx):Infinity;
+  const roomY=Math.abs(dy)>.0001?(dy>0?cue.y-14:height-cue.y-14)/Math.abs(dy):Infinity;
+  const length=Math.max(75,Math.min(226,Math.min(roomX,roomY)+nose));
+  const end=nose-length;
+  ctx.save();
+  ctx.translate(0,4);
+  polygon(ctx,[[nose,-1.3],[nose,2],[end-4,6],[end-4,-5]]);
+  ctx.fillStyle='#06140f8a';ctx.fill();
+  ctx.restore();
+  polygon(ctx,[[nose, -2.6],[nose,2.6],[end,6.8],[end-4,2.9],[end-4,-3.2],[end,-6.8]]);
+  ctx.fillStyle=linear(ctx,0,-7,0,7,[[0,'#381e1c'],[.33,'#fbda94'],[.56,'#bc8151'],[1,'#543122']]);ctx.fill();
+  ctx.strokeStyle='#281e21';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle=linear(ctx,0,-6,0,6,[[0,'#261925'],[.48,'#634643'],[1,'#281c21']]);
+  polygon(ctx,[[end,-6.6],[end+length*.33,-5.3],[end+length*.44,0],[end+length*.33,5.3],[end,6.6]]);
+  ctx.fill();
+  ctx.fillStyle='#e7c394';ctx.fillRect(end+length*.13,-6,3,12);ctx.fillRect(end+length*.18,-6,1.5,12);
+  ctx.fillStyle='#efe5bf';ctx.fillRect(nose-8,-2.7,6,5.4);
+  ctx.fillStyle='#96aeb1';ctx.fillRect(nose-2,-2.7,2.7,5.4);
+  ctx.restore();
+ }
+
+ function effects(frame) {
+  for(const effect of frame.effects||[]){
+   const time=Math.max(0,(frame.now-effect.at)/550);
+   if(time>=1)continue;
+   ctx.save();
+   ctx.globalAlpha=(1-time)*.75;
+   ctx.strokeStyle=effect.number===0?'#f77e73':'#f7d897';
+   ctx.lineWidth=3*(1-time)+.6;
+   circle(ctx,effect.x,effect.y,19+time*24);ctx.stroke();
+   ctx.globalAlpha=(1-time)*.16;circle(ctx,effect.x,effect.y,17+time*17);
+   ctx.fillStyle=ctx.strokeStyle;ctx.fill();
+   ctx.restore();
+  }
+ }
+
+ function drawChallenge(frame) {
+  const {pocket,ball,bankY}=frame.challenge;
+  const goal=pockets[pocket],target=frame.engine.balls.find(item=>item.number===ball&&!item.pocketed);
+  ctx.save();
+  ctx.strokeStyle='#ffe18b';ctx.lineWidth=3;ctx.shadowColor='#ffc365';ctx.shadowBlur=10;
+  circle(ctx,goal.x,goal.y,goal.radius+4);ctx.stroke();
+  ctx.shadowBlur=0;ctx.lineWidth=2;
+  if(target){
+   ctx.setLineDash([4,5]);circle(ctx,target.x,target.y,ballRadius+8);ctx.stroke();ctx.setLineDash([]);
+  }
+  if(bankY){
+   const x=right-ballRadius;
+   ctx.beginPath();ctx.moveTo(x-10,bankY);ctx.lineTo(x,bankY-10);
+   ctx.lineTo(x+10,bankY);ctx.lineTo(x,bankY+10);ctx.closePath();
+   ctx.fillStyle='#102c25';ctx.fill();ctx.stroke();
+  }
+  ctx.restore();
+ }
+
+ staticDeck();
+ return frame=>{
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0,0,width,height);
+  ctx.drawImage(deck,0,0,width,height);
+  if(frame.challenge&&frame.phase==='aim')drawChallenge(frame);
+  if(frame.bonus&&frame.phase==='aim'){
+   const {x,y,radius}=frame.bonus;
+   ctx.save();ctx.strokeStyle='#ffe28b';ctx.lineWidth=3;
+   circle(ctx,x,y,radius+4);ctx.stroke();
+   ctx.fillStyle='#fff0ab';ctx.font='800 15px system-ui';ctx.textAlign='center';
+   ctx.translate(x,y);if(frame.tall)ctx.rotate(-Math.PI/2);ctx.fillText(frame.called?'×3':'×2',0,5);ctx.restore();
+  }
+  if(frame.phase==='place')drawPlacement(frame.tall);
+  const cue=frame.engine.cue;
+  const aiming=frame.phase==='aim';
+  if(cue&&!cue.pocketed&&(aiming||frame.phase==='stroke')){
+   if(aiming)drawGuide(frame,cue,frame.tint||'#e3fff4');
+   drawCue(frame,cue);
+  }
+  effects(frame);
+  for(const ball of frame.engine.balls)renderBall(ball,frame.tall);
+ };
+}
+
+const engine=createPoolEngine();
+const board=document.querySelector('#poolBoard');
+const renderTable=createPoolRenderer(board);
+const match=document.querySelector('.match');
+const rules=document.querySelector('#rules');
+const powerInput=document.querySelector('#power');
+const shootButton=document.querySelector('#shoot');
+const result=document.querySelector('.result');
+const replayButton=document.querySelector('#replay');
+const modeButton=document.querySelector('#poolMode');
+const message=document.querySelector('#message');
+const aimHint=document.querySelector('#aimHint');
+const scorecards=Array.from(document.querySelectorAll('.playerCard'));
+const scores=Array.from(document.querySelectorAll('.points'));
+const shotBalances=[document.querySelector('#left0'),document.querySelector('#left1')];
+const playerNames=['Player A','Player B'];
+const playerTints=['#9df1da','#ffb59f'];
+const ballColors=['','#f9cc4c','#68b5f1','#f3806e','#ae82eb','#fcb563','#72d6aa','#b7797d','#8897ab','#ecd470'];
+const maxShots=12,stepTime=1/180,strokeDuration=.27;
+const bonusOrder=[1,4,2,3,0,5,4,1,3,2,5,0];
+const challengeCards=[
+ {name:'Straight shot',cue:[450,290],balls:[[1,450,165]],ball:1,pocket:1,power:55,tip:'Sink the 1 in the top side pocket.'},
+ {name:'Cut shot',cue:[318,265],balls:[[3,450,166],[7,520,112],[6,678,235]],ball:3,pocket:1,power:72,tip:'Cut the 3 into the top side pocket.'},
+ {name:'Bank shot',cue:[747,235],balls:[[2,810,405]],ball:2,pocket:5,power:86,bankY:344,tip:'Bank the cue ball off the right rail, then sink the 2 in the bottom-right corner.'}
+];
+
+const tray=document.querySelector('.ballTray');
+const trayBalls=ballColors.slice(1).map((color,index)=>{
+ const ball=document.createElement('span');
+ ball.className='trayBall';
+ ball.textContent=index+1;
+ ball.style.setProperty('--ball',color);
+ tray.append(ball);
+ return ball;
+});
+
+let angle=0,power=.76,turn=0,shots=0,phase='aim',points=[0,0],taken=[0,0];
+let sunk=[],effects=[],shotProgress=0,strokeTime=0,carry=0,restTime=0;
+let bonusHits=0,calledPocket=null,callSpent=[false,false];
+const callSheet=document.querySelector('#callSheet');
+const callButton=document.querySelector('#callPocket');
+const pocketButtons=[...callSheet.querySelectorAll('[data-pocket]')];
+function refreshCall(){
+ document.querySelector('.callRow').hidden=!!currentChallenge();
+ callButton.disabled=phase!=='aim'||callSpent[turn];
+ callButton.textContent=calledPocket==null?'Call a pocket':'Change call';
+ document.querySelector('#callState').textContent=calledPocket!=null?pocketButtons[calledPocket].textContent+' · ×3':callSpent[turn]?'Call used':'One ×3 call available';
+}
+callButton.onclick=()=>{
+ if(callButton.disabled||currentChallenge())return;
+ pocketButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===calledPocket)));
+ document.querySelector('#clearCall').hidden=calledPocket==null;
+ callSheet.showModal();
+};
+for(const button of pocketButtons)button.onclick=()=>{
+ calledPocket=Number(button.dataset.pocket);callSheet.close();refreshCall();scheduleFrame()
+};
+document.querySelector('#clearCall').onclick=()=>{calledPocket=null;callSheet.close();refreshCall();scheduleFrame()};
+let pointerId=null,frameHandle=0,lastTime=0,active=true;
+let challengeIndex=-1,chances=3,cleared=0,challengePassed=false,challengeDone=false;
+let bankReached=false,goalReached=false;
+const currentChallenge=()=>challengeCards[challengeIndex];
+const currentBonus=()=>currentChallenge()?null:POOL_TABLE.pockets[calledPocket??bonusOrder[shots]];
+
+function notice(text,kind=''){
+ if(message.textContent!==text)message.textContent=text;
+ message.dataset.kind=kind;
+}
+
+function syncScore(){
+ match.dataset.side=turn;
+ scorecards.forEach((card,index)=>{
+  card.classList.toggle('current',index===turn&&phase!=='finished');
+  if(index===turn&&phase!=='finished')card.setAttribute('aria-current','true');
+  else card.removeAttribute('aria-current');
+  scores[index].textContent=points[index];
+  shotBalances[index].textContent=(maxShots/2-taken[index])+' left';
+ });
+ document.querySelector('#shotIndex').textContent=String(Math.min(shots+1,maxShots)).padStart(2,'0');
+}
+
+function syncRemaining(){
+ const objects=engine.balls.filter(ball=>ball.number>0);
+ document.querySelector('#remaining').textContent=objects.filter(ball=>!ball.pocketed).length;
+ for(const ball of objects)trayBalls[ball.number-1].dataset.pocketed=String(ball.pocketed);
+}
+
+const tallScreen=matchMedia('(orientation:portrait) and (min-height:620px)');
+const landscapeNames=pocketButtons.map(button=>button.textContent);
+const portraitNames=['Top right','Right side','Bottom right','Top left','Left side','Bottom left'];
+function syncTableLayout(){
+ const tall=tallScreen.matches&&!currentChallenge();
+ match.dataset.tall=String(tall);
+ pocketButtons.forEach((button,i)=>button.textContent=(tall?portraitNames:landscapeNames)[i]);
+}
+tallScreen.addEventListener('change',()=>{syncTableLayout();refreshCall();scheduleFrame()});
+function syncControls(){
+ syncTableLayout();
+ refreshCall();
+ const ready=phase==='aim',placing=phase==='place';
+ const verb={aim:'Aiming',place:'Place the cue ball',stroke:'Shooting',rolling:'Balls rolling',finished:'Match over'};
+ document.querySelector('#turn').textContent=currentChallenge()||phase==='rolling'||phase==='finished'?verb[phase]:playerNames[turn]+' · '+verb[phase];
+ document.querySelectorAll('[data-nudge]').forEach(button=>button.disabled=!ready);
+ powerInput.disabled=!ready;
+ shootButton.disabled=!ready&&!placing;
+ modeButton.disabled=phase==='stroke'||phase==='rolling';
+ aimHint.textContent=placing?'Tap the shaded area':'Tap or drag to aim';
+ if(placing){
+  shootButton.firstChild.textContent='Confirm ';
+ }else if(ready){
+  shootButton.firstChild.textContent=shots||currentChallenge()?'Shoot ':'Break ';
+ }else{
+  shootButton.firstChild.textContent=verb[phase]+' ';
+ }
+}
+
+function setPower(value){
+ power=Number(value)/100;
+ powerInput.value=value;
+ powerInput.style.setProperty('--fill',((value-10)/.9)+'%');
+ document.querySelector('#powerValue').textContent=value+'%';
+}
+
+function nextAim(){
+ const live=engine.balls.filter(ball=>ball.number>0&&!ball.pocketed);
+ if(!live.length)return 0;
+ const cue=engine.cue;
+ const distance=ball=>Math.hypot(ball.x-cue.x,ball.y-cue.y);
+ const target=live.reduce((near,ball)=>distance(ball)<distance(near)?ball:near);
+ return Math.atan2(target.y-cue.y,target.x-cue.x);
+}
+
+function resetMatch(){
+ engine.reset();calledPocket=null;callSpent=[false,false];
+ points=[0,0];taken=[0,0];turn=0;shots=0;angle=0;phase='aim';
+ sunk=[];effects=[];carry=0;restTime=0;shotProgress=0;pointerId=null;
+ result.hidden=true;
+ document.querySelector('#resultLabel').textContent='Match over';
+ replayButton.textContent='Play again';
+ setPower(76);
+ syncScore();syncRemaining();syncControls();
+ notice('Aim at the rack and set your power. Gold pocket: 2 points.');
+ scheduleFrame();
+}
+
+function setMode(practice){
+ challengeIndex=practice?0:-1;
+ chances=3;cleared=0;
+ document.querySelector('.scoreboard').hidden=practice;
+ document.querySelector('.challengeCard').hidden=!practice;
+ document.querySelector('#duelRules').hidden=practice;
+ document.querySelector('#challengeRules').hidden=!practice;
+ document.querySelector('#rulesTitle').textContent=practice?'Trick shot rules':'Match rules';
+ document.querySelector('.eyebrow').textContent=practice?'Solo · 3 trick shots':'Local versus · 12 shots';
+ modeButton.textContent=practice?'Versus':'Trick shots';
+ modeButton.setAttribute('aria-label',practice?'Play local versus':'Play trick shots');
+ if(practice)loadChallenge();
+ else resetMatch();
+}
+
+function loadChallenge(){
+ const card=currentChallenge();calledPocket=null;
+ engine.reset();
+ for(const ball of engine.balls){
+  if(ball.number===0){[ball.x,ball.y]=card.cue;continue}
+  const position=card.balls.find(([number])=>number===ball.number);
+  ball.pocketed=!position;
+  if(position)[,ball.x,ball.y]=position;
+ }
+ match.dataset.side=0;turn=0;phase='aim';angle=nextAim();pointerId=null;
+ sunk=[];effects=[];carry=0;restTime=0;shotProgress=0;
+ challengePassed=false;challengeDone=false;
+ result.hidden=true;
+ document.querySelector('#challengeProgress').textContent='Trick shots '+(challengeIndex+1)+' / '+challengeCards.length;
+ document.querySelector('#challengeTitle').textContent=card.name;
+ document.querySelector('#challengeAttempts').textContent=chances+' left';
+ setPower(card.power);syncRemaining();syncControls();
+ notice(card.tip);
+ scheduleFrame();
+}
+
+function finishChallenge(){
+ const scratched=sunk.includes(0);
+ challengePassed=goalReached&&!scratched;
+ chances--;
+ if(challengePassed)cleared++;
+ challengeDone=cleared===challengeCards.length||(!challengePassed&&chances===0);
+ phase='finished';
+ const heading=challengePassed?(challengeDone?'All shots cleared':'Nice shot'):(challengeDone?'Run complete':'Missed the shot');
+ document.querySelector('#challengeAttempts').textContent=chances+' left';
+ document.querySelector('#resultLabel').textContent='Trick shots '+(challengeIndex+1)+' / '+challengeCards.length;
+ document.querySelector('#winner').textContent=heading;
+ document.querySelector('#finalScore').textContent=scratched?'Scratch':challengeDone?cleared+' / '+challengeCards.length+' cleared':challengePassed?'Target ball pocketed':chances+' attempts left';
+ replayButton.textContent=challengeDone?'Restart':challengePassed?'Next shot':'Try again';
+ result.hidden=false;
+ syncControls();
+ notice(heading,challengePassed?'score':'foul');
+}
+
+function shoot(){
+ if(callSheet.open||rules.open||!active||engine.cue.pocketed)return;
+ if(phase==='place'){
+  pointerId=null;
+  phase='aim';angle=nextAim();
+  syncControls();notice('Cue placed. Aim your shot.');scheduleFrame();
+  return;
+ }
+ if(phase!=='aim')return;
+ pointerId=null;
+ phase='stroke';sunk=[];strokeTime=0;shotProgress=0;carry=0;restTime=0;
+ studioCue('impact');bonusHits=0;if(calledPocket!=null)callSpent[turn]=true;
+ bankReached=false;goalReached=false;
+ syncControls();
+ notice(currentChallenge()?'Shooting…':playerNames[turn]+' Shooting…');
+ scheduleFrame();
+}
+
+function finishShot(){
+ if(currentChallenge()){finishChallenge();return}
+ const shooter=turn,objects=sunk.filter(number=>number!==0),scratch=sunk.includes(0);
+ const remaining=engine.balls.some(ball=>ball.number>0&&!ball.pocketed);
+ const called=calledPocket!=null, gained=scratch?0:objects.length+bonusHits*(called?2:1);
+ calledPocket=null;
+ shots++;taken[shooter]++;points[shooter]+=gained;
+ if(scratch)engine.respotCue();
+ const feedback=scratch?'Scratch. No points this shot.':gained?'+'+gained+' pts'+(bonusHits?(called?' · Called pocket ×3!':' · Gold pocket bonus.') :'.'):'No balls pocketed.';
+ if(shots>=maxShots||!remaining){
+  phase='finished';
+  const winner=points[0]===points[1]?'Tie game':playerNames[points[0]>points[1]?0:1]+' wins';
+  document.querySelector('#winner').textContent=winner;
+  document.querySelector('#finalScore').textContent='A '+points[0]+'  :  '+points[1]+' B  ·  '+shots+' shots';
+  result.hidden=false;
+  notice(feedback+' '+winner,scratch?'foul':gained?'score':'');
+ }else{
+  turn=1-turn;phase=scratch?'place':'aim';
+  angle=nextAim();
+  notice(feedback+' '+playerNames[turn]+(scratch?' places the cue ball in the shaded area.':' to shoot.'),scratch?'foul':gained?'score':'');
+ }
+ syncScore();syncControls();
+}
+
+function advanceRolling(delta,now){
+ carry+=delta;
+ while(carry>=stepTime&&phase==='rolling'){
+  carry-=stepTime;
+  const card=currentChallenge();
+  for(const event of engine.step(stepTime)){
+   if(card?.bankY&&event.type==='rail'&&event.number===0&&event.x>=POOL_TABLE.right-POOL_TABLE.ballRadius-2)bankReached=true;
+   if(event.type!=='pocket')continue;
+   const {number,x,y}=event;
+   const bonus=currentBonus();
+   if(number>0&&bonus?.x===x&&bonus.y===y)bonusHits++;
+   if(card&&number===card.ball&&(!card.bankY||bankReached)){
+    const pocket=POOL_TABLE.pockets[card.pocket];
+    goalReached=x===pocket.x&&y===pocket.y;
+   }
+   sunk.push(number);
+   effects.push({number,x,y,at:now});
+   syncRemaining();
+   notice(number===0?'Scratch. Let the balls settle.':'Ball '+number+' pocketed.',number===0?'foul':'score');
+  }
+  restTime=engine.isMoving()?0:restTime+stepTime;
+  if(restTime>=.14)finishShot();
+ }
+}
+
+function scheduleFrame(){
+ if(!frameHandle&&active&&!rules.open&&!document.hidden)frameHandle=requestAnimationFrame(frame);
+}
+
+function frame(now){
+ frameHandle=0;
+ if(!active||rules.open||document.hidden){lastTime=0;return}
+ const delta=lastTime?Math.min(.05,(now-lastTime)/1000):0;
+ lastTime=now;
+ if(phase==='stroke'){
+  strokeTime+=delta;
+  shotProgress=Math.min(1,strokeTime/strokeDuration);
+  if(shotProgress===1){
+   if(engine.strike(angle,power)){
+    phase='rolling';
+    notice('Let the balls settle.');
+   }else{
+    phase='aim';
+    notice('Aim again, then shoot.');
+   }
+   syncControls();
+  }
+ }
+ if(phase==='rolling')advanceRolling(delta,now);
+ effects=effects.filter(effect=>now-effect.at<720);
+ document.querySelector('#aimAngle').textContent=phase==='aim'?(((angle*180/Math.PI)%360+360)%360).toFixed(1)+'°':'—';
+ renderTable({engine,angle,power,phase,shotProgress,now,effects,tall:match.dataset.tall==='true',tint:playerTints[turn],challenge:currentChallenge(),bonus:currentBonus(),called:calledPocket!=null});
+ if(phase==='stroke'||phase==='rolling'||effects.length)scheduleFrame();
+ else lastTime=0;
+}
+
+function aimAt(event){
+ const bounds=board.getBoundingClientRect();
+ const px=(event.clientX-bounds.left)/bounds.width,py=(event.clientY-bounds.top)/bounds.height;
+ const tall=match.dataset.tall==='true';
+ const tableX=(tall?py:px)*POOL_TABLE.width,tableY=(tall?1-px:py)*POOL_TABLE.height;
+ if(phase==='place'){
+  if(engine.placeCue(tableX,tableY)){
+   notice('Drag to adjust or confirm the cue ball.');scheduleFrame();
+  }else notice('Place the cue ball in the shaded area, clear of other balls.','foul');
+  return;
+ }
+ const x=tableX-engine.cue.x,y=tableY-engine.cue.y;
+ if(Math.hypot(x,y)<POOL_TABLE.ballRadius*1.55)return;
+ angle=Math.atan2(y,x);
+ scheduleFrame();
+}
+board.addEventListener('pointerdown',event=>{
+ if((phase!=='aim'&&phase!=='place')||pointerId!==null||event.button!==0)return;
+ pointerId=event.pointerId;
+ board.setPointerCapture(pointerId);
+ aimAt(event);
+});
+board.addEventListener('pointermove',event=>{
+ if(pointerId===event.pointerId&&(phase==='aim'||phase==='place'))aimAt(event);
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture']){
+ board.addEventListener(type,event=>{if(pointerId===event.pointerId)pointerId=null});
+}
+board.addEventListener('keydown',event=>{
+ if(phase!=='aim'&&phase!=='place')return;
+ if(event.key==='Enter'||event.key===' '){event.preventDefault();shoot();return}
+ const change={ArrowLeft:-1,ArrowRight:1,ArrowUp:-1,ArrowDown:1}[event.key];
+ if(!change)return;
+ event.preventDefault();
+ if(phase==='place'){
+  const horizontal=event.key==='ArrowLeft'||event.key==='ArrowRight';
+  const dx=horizontal?8*change:0,dy=horizontal?0:8*change,tall=match.dataset.tall==='true';
+  if(engine.placeCue(engine.cue.x+(tall?dy:dx),engine.cue.y+(tall?-dx:dy)))scheduleFrame();
+  return;
+ }
+ angle+=change*(event.shiftKey?.009:.035);
+ scheduleFrame();
+});
+for(const button of document.querySelectorAll('[data-nudge]')){
+ button.addEventListener('click',()=>{
+  if(phase!=='aim'||rules.open||!active)return;
+  angle+=Number(button.dataset.nudge)*Math.PI/360;
+  scheduleFrame();
+ });
+}
+powerInput.addEventListener('input',()=>{setPower(Number(powerInput.value));scheduleFrame()});
+shootButton.addEventListener('click',shoot);
+modeButton.addEventListener('click',()=>setMode(!currentChallenge()));
+replayButton.addEventListener('click',()=>{
+ if(!currentChallenge())resetMatch();
+ else if(challengeDone)setMode(true);
+ else{
+  if(challengePassed){challengeIndex++;chances=3}
+  loadChallenge();
+ }
+ shootButton.focus({preventScroll:true});
+});
+document.querySelector('#openRules').addEventListener('click',()=>{lastTime=0;rules.showModal()});
+rules.addEventListener('close',()=>{lastTime=0;scheduleFrame()});
+window.addEventListener('message',event=>{
+ if(event.source!==parent||!['pool-visibility','arcade-visibility'].includes(event.data?.type))return;
+ active=event.data.active;
+ if(!active)pointerId=null;
+ lastTime=0;
+ if(active)scheduleFrame();
+});
+document.addEventListener('visibilitychange',()=>{lastTime=0;scheduleFrame()});
+resetMatch();
+
+</script>
+</body>
+</html>
