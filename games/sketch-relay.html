@@ -106,7 +106,12 @@ html[data-us-party=draw] .match{background:#f4effb}.match .matchhead{display:fle
 .match .seats{border:0;padding:7px;border-radius:15px;background:#231f32;gap:3px}.match .seat{background:transparent;border-radius:10px;color:#efebfa}.match .seat small{color:#c0b8d1}.match .seat.hot{background:#e5ff99;color:#30233d;box-shadow:none}.match .seat.hot small{color:#3e3550}.match .seat.hit:not(.hot){background:#35483c}
 .match .drawToolbar{background:#29243b;padding:6px;border-radius:13px}.match .drawToolbar button{border-radius:7px;border:1px solid #554b66;background:#3c354e;color:white}.match .drawToolbar button.primary{background:#e4fc9d;color:#282236}
 .match .description{margin:3px 0}.match .roundTrack{margin:4px 0 9px}
-</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script></head><body><main></main><script>
+</style><script>function studioCue(cue){if(window!==parent)parent.postMessage({type:"room-cue",cue},"*")}</script><style>
+.match[data-sketch-phase=result] .matchbody{background:#fff9ef;border:1px solid #c4b5a4;border-radius:19px;padding:13px;box-shadow:0 4px 0 #d8cdbd}
+.match[data-sketch-phase=result] .matchbody h2{font:600 clamp(25px,7vw,36px)/1.05 Georgia,serif;letter-spacing:-.04em}
+.sketchPlayback{min-height:44px;border:1px solid #a995c4;color:#422b60;background:#eee4fb;border-radius:11px;margin:5px 5px 5px 0;padding:0 12px;font-weight:700}.sketchPlayback:disabled{opacity:.58}
+.match[data-sketch-phase=result] canvas{box-shadow:0 2px 6px #60483718;border-radius:3px;background-color:#fffdf8}
+</style></head><body><main></main><script>
 const bank=[['umbrella','You open it to stay dry.','parasol',[[[70,160],[92,104],[140,77],[188,104],[210,160],[175,145],[140,160],[105,145],[70,160]],[[140,78],[140,221],[151,239],[169,231]]]],['sailboat','It moves across the water without an engine.','sailing boat|sail boat',[[[66,195],[218,195],[191,226],[88,226],[66,195]],[[139,60],[139,182],[77,182],[139,60]],[[148,91],[199,182],[148,182]],[[58,246],[91,240],[124,246],[157,240],[190,246],[224,240]]]],['cat','It meows.','kitty|kitten',[[[74,166],[70,80],[118,113],[162,113],[210,80],[207,173],[184,206],[140,217],[97,205],[74,166]],[[111,151],[116,151]],[[163,151],[168,151]],[[133,172],[146,172],[140,182],[133,172]],[[96,175],[54,163]],[[184,175],[226,163]]]],['alarm clock','It wakes you up in the morning.','clock',[[[140,79],[192,97],[214,143],[196,194],[140,215],[86,194],[67,143],[89,96],[140,79]],[[140,109],[140,144],[170,161]],[[104,208],[89,232]],[[176,208],[191,232]],[[76,107],[66,86],[94,64],[117,77]],[[164,77],[187,64],[213,86],[204,107]]]]];
 const drawPackLabels={mix:'Mix it up',animals:'Animals',daily:'Everyday objects',travel:'Things that move'};
 const drawOval=(x,y,rx,ry,n=7)=>Array.from({length:n+1},(_,i)=>{
@@ -280,6 +285,18 @@ function changeDrawTool(action){
   if(replacement){word=words[round]=replacement;drawSwapped=true;render();bindCanvas();showDrawTime()}
  }
  syncDrawTools();paint();
+ const replay=main.querySelector('.sketchPlayback');
+ if(replay)replay.onclick=()=>{
+  replay.disabled=true;
+  const canvas=main.querySelector('canvas'),total=strokes.reduce((n,s)=>n+s.points.length,0),start=performance.now();
+  const duration=matchMedia('(prefers-reduced-motion:reduce)').matches?1:Math.min(2800,Math.max(600,total*7));
+  function tick(now){
+   if(!canvas.isConnected)return;
+   const t=Math.min(1,(now-start)/duration);paint(Math.ceil(total*t));
+   if(t<1)requestAnimationFrame(tick);else replay.disabled=false;
+  }
+  requestAnimationFrame(tick);
+ };
 }
 
 const main=document.querySelector('main');
@@ -327,17 +344,20 @@ function render(){
  const drawTools=drawToolPanel();
  const input=(guesser!==null&&manual(guesser))?`<form class="row"><input aria-label="Your guess" placeholder="Type your guess" maxlength="24" autocomplete="off" required><button class="primary">Guess</button>${button('skip','Pass')}</form>`:'';
  const next=phase==='result'?button('next',round===2?'See standings':'Next round','primary'):'';
- main.innerHTML=`<div class="match" data-sketch-phase="${phase}"><div class="matchbody"><div class="matchhead"><span class="tag">Round ${round+1} of 3</span><strong class="clock">${phase==='draw'&&!manual(painter)?'Drawing':phase==='guess'&&!manual(guesser)?'Guessing':''}</strong></div><h2>${lead}</h2><p class="description">${note}</p><div class="roundTrack" role="img" aria-label="Round ${round+1} of 3">${[0,1,2].map(i=>'<i class="'+(i<=round?'filled':'')+'"></i>').join('')}</div><canvas width="560" height="560" aria-label="Sketch pad"></canvas>${drawTools}${input}${(guesser!==null&&manual(guesser))?drawHintControls():''}${next}</div><section class="seats" aria-label="Eight players">${players.map(p=>{
+ main.innerHTML=`<div class="match" data-sketch-phase="${phase}"><div class="matchbody"><div class="matchhead"><span class="tag">Round ${round+1} of 3</span><strong class="clock">${phase==='draw'&&!manual(painter)?'Drawing':phase==='guess'&&!manual(guesser)?'Guessing':''}</strong></div><h2>${lead}</h2><p class="description">${note}</p><div class="roundTrack" role="img" aria-label="Round ${round+1} of 3">${[0,1,2].map(i=>'<i class="'+(i<=round?'filled':'')+'"></i>').join('')}</div><canvas width="560" height="560" aria-label="Sketch pad"></canvas>${drawTools}${input}${(guesser!==null&&manual(guesser))?drawHintControls():''}${phase==='result'&&strokes.length?'<button type="button" class="sketchPlayback">↻ Replay sketch</button>':''}${next}</div><section class="seats" aria-label="Eight players">${players.map(p=>{
   const on=(phase==='draw'&&p.id===painter)||p.id===guesser;
   return `<div class="seat ${on?'hot':''} ${record.get(p.id)==='Correct'?'hit':''}" ${on?'aria-current="true"':''}><span class="avatar roomFace" data-face="${p.id}" style="--tone:${palette[p.id]}">${localParty?p.id+1:p.name[0]}</span><b>${p.name}</b><small>${p.id===painter?'Artist':record.get(p.id)||p.score+' pts'}</small></div>`;
  }).join('')}</section></div>`;
  syncDrawTools();paint();
 }
-function paint(){
+function paint(limit=Infinity){
  const canvas=main.querySelector('canvas');if(!canvas)return;
  const ctx=canvas.getContext('2d');ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,280,280);
  ctx.lineWidth=5;ctx.lineCap=ctx.lineJoin='round';
- for(const {ink,points,width=5,erase=false} of strokes){
+ for(const stroke of strokes){
+  if(limit<=0)break;
+  const {ink,width=5,erase=false}=stroke,points=limit<stroke.points.length?stroke.points.slice(0,limit):stroke.points;
+  limit-=points.length;
   ctx.lineWidth=width;ctx.globalCompositeOperation=erase?'destination-out':'source-over';
   const [x,y]=points[0];ctx.fillStyle=ctx.strokeStyle=erase?'#000':ink;ctx.beginPath();
   if(points.length===1){ctx.arc(x,y,width/2,0,Math.PI*2);ctx.fill();continue}
